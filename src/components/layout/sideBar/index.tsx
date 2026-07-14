@@ -5,9 +5,11 @@ import {
     FileText,
     LogOut,
 } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 const Sidebar = () => {
     const router = useRouter();
+    const { logout } = useAuth();
 
     const menu = [
         {
@@ -21,11 +23,6 @@ const Sidebar = () => {
             href: "/dashboard/documents",
         },
     ];
-
-    const logout = () => {
-        localStorage.removeItem("token");
-        router.push("/login");
-    };
 
     return (
         <aside className="w-64 h-screen bg-blue-600 text-white flex flex-col">

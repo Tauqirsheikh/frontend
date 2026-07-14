@@ -6,6 +6,12 @@ export const getDocuments = async () => {
     return response.data;
 };
 
+export const getDocumentById = async (id: number | string) => {
+    const response = await api.get(`/documents/${id}`);
+
+    return response.data;
+};
+
 export const deleteDocument = async (id: number) => {
     return await api.delete(`/documents/${id}`);
 };

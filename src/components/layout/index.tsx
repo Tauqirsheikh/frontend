@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import Sidebar from "./sideBar";
 import Header from "./header";
+import ProtectedRoute from "@/components/common/ProtectedRoute";
 
 interface Props {
     children: ReactNode;
@@ -8,15 +9,17 @@ interface Props {
 
 const Layout = ({ children }: Props) => {
     return (
-        <div className="flex">
-            <Sidebar />
+        <ProtectedRoute>
+            <div className="flex">
+                <Sidebar />
 
-            <div className="flex-1">
-                <Header />
+                <div className="flex-1">
+                    <Header />
 
-                <main className="p-8">{children}</main>
+                    <main className="p-8">{children}</main>
+                </div>
             </div>
-        </div>
+        </ProtectedRoute>
     );
 };
 
