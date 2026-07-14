@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
 html,
 body {
   padding: 0;
