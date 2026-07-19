@@ -3,12 +3,14 @@ import { useForm } from "react-hook-form";
 import Link from "next/link";
 import Layout from "@/components/layout";
 import { getDocuments, createDocument, deleteDocument } from "@/services/document";
+import { getDocumentTypes } from "@/services/documentType";
 import { Document } from "@/types/document";
 import { toast } from "sonner";
-import { FileText, Upload, Trash, Eye, Download, Search, Plus, X, Calendar, User } from "lucide-react";
+import { FileText, Upload, Trash, Eye, Download, Search, Plus, X, Calendar, User, Tags } from "lucide-react";
 
 export default function Documents() {
     const [documents, setDocuments] = useState<Document[]>([]);
+    const [docTypes, setDocTypes] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isUploadOpen, setIsUploadOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
@@ -30,8 +32,19 @@ export default function Documents() {
         }
     };
 
+    const fetchDocTypes = async () => {
+        try {
+            const response = await getDocumentTypes();
+            // Filter to only active types for selection dropdown
+            setDocTypes((response.data || []).filter((t: any) => t.isActive));
+        } catch (error) {
+            console.error("Error fetching document types:", error);
+        }
+    };
+
     useEffect(() => {
         fetchDocuments();
+        fetchDocTypes();
     }, []);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -49,6 +62,7 @@ export default function Documents() {
         const formData = new FormData();
         formData.append("documentName", data.documentName);
         formData.append("description", data.description || "");
+        formData.append("documentTypeId", data.documentTypeId);
         formData.append("file", selectedFile);
 
         setUploading(true);
@@ -93,7 +107,10 @@ export default function Documents() {
                     <p className="text-slate-500 dark:text-slate-400 mt-1">Manage, upload, and view your repository documents.</p>
                 </div>
                 <button
-                    onClick={() => setIsUploadOpen(true)}
+                    onClick={() => {
+                        fetchDocTypes(); // Refresh document types in case they changed
+                        setIsUploadOpen(true);
+                    }}
                     className="flex items-center justify-center gap-2 bg-[#18beb8] hover:bg-[#129a95] text-white rounded-xl py-3 px-5 font-semibold transition duration-300 shadow-lg shadow-teal-500/10"
                 >
                     <Plus size={18} />
@@ -145,8 +162,16 @@ export default function Documents() {
                             <div key={doc.id} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-6 shadow-sm hover:shadow-md hover:border-[#18beb8]/30 transition duration-300 flex flex-col justify-between transition-colors">
                                 <div>
                                     <div className="flex items-center justify-between mb-4">
-                                        <div className="p-3 bg-teal-50 dark:bg-teal-950/40 text-[#18beb8] dark:text-[#18beb8] rounded-xl font-bold text-xs tracking-wider border border-teal-100/50 dark:border-teal-950/20">
-                                            {fileExt}
+                                        <div className="flex gap-2 items-center">
+                                            <div className="p-3 bg-teal-50 dark:bg-teal-950/40 text-[#18beb8] dark:text-[#18beb8] rounded-xl font-bold text-xs tracking-wider border border-teal-100/50 dark:border-teal-950/20">
+                                                {fileExt}
+                                            </div>
+                                            {doc.documentType && (
+                                                <div className="flex items-center gap-1 p-3 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 rounded-xl font-bold text-xs tracking-wider border border-indigo-100/50 dark:border-indigo-950/20">
+                                                    <Tags size={12} />
+                                                    {doc.documentType.documentTypeName}
+                                                </div>
+                                            )}
                                         </div>
                                         <div className="flex gap-1">
                                             <Link href={`/dashboard/documents/${doc.id}`} title="View Details">
@@ -222,6 +247,21 @@ export default function Documents() {
                         </div>
 
                         <form onSubmit={handleSubmit(handleUpload)} className="p-6 space-y-4">
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Document Type *</label>
+                                <select
+                                    {...register("documentTypeId", { required: "Document type is required" })}
+                                    className="w-full bg-transparent border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-[#18beb8]/20 focus:border-[#18beb8] transition duration-300"
+                                    required
+                                >
+                                    <option value="" className="dark:bg-slate-900">Select document type...</option>
+                                    {docTypes.map((t) => (
+                                        <option key={t.id} value={t.id} className="dark:bg-slate-900">
+                                            {t.documentTypeName}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
                             <div>
                                 <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Document Name *</label>
                                 <input

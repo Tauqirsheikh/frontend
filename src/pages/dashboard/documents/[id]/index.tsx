@@ -4,7 +4,7 @@ import Link from "next/link";
 import Layout from "@/components/layout";
 import { getDocumentById, deleteDocument } from "@/services/document";
 import { toast } from "sonner";
-import { ArrowLeft, Calendar, User, Download, Trash, FileText, ExternalLink } from "lucide-react";
+import { ArrowLeft, Calendar, User, Download, Trash, FileText, ExternalLink, Tags } from "lucide-react";
 
 export default function DocumentDetail() {
     const router = useRouter();
@@ -159,6 +159,18 @@ export default function DocumentDetail() {
                                     <p className="text-xs text-slate-400 dark:text-slate-500">{document.user?.email}</p>
                                 </div>
                             </div>
+
+                            {document.documentType && (
+                                <div className="flex items-start gap-3">
+                                    <Tags className="text-slate-400 dark:text-slate-500 mt-0.5" size={18} />
+                                    <div>
+                                        <p className="text-xs text-slate-400 dark:text-slate-500 font-medium uppercase tracking-wider">Document Type</p>
+                                        <p className="text-sm font-bold text-slate-700 dark:text-slate-300 mt-0.5">
+                                            {document.documentType.documentTypeName}
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
 
                             <div className="flex items-start gap-3">
                                 <Calendar className="text-slate-400 dark:text-slate-500 mt-0.5" size={18} />
