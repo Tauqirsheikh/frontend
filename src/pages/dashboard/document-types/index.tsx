@@ -45,6 +45,10 @@ export default function DocumentTypes() {
     const [editingType, setEditingType] = useState<DocType | null>(null);
     const [submitting, setSubmitting] = useState(false);
 
+    // Pagination states
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
+
     const { register, handleSubmit, reset, setValue } = useForm();
 
     const fetchTypes = async () => {
@@ -63,6 +67,11 @@ export default function DocumentTypes() {
     useEffect(() => {
         fetchTypes();
     }, []);
+
+    // Reset pagination page when search changes
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm]);
 
     const handleOpenCreate = () => {
         setEditingType(null);
@@ -150,6 +159,13 @@ export default function DocumentTypes() {
             (t.description && t.description.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
+    // Calculate pagination slices
+    const totalPages = Math.ceil(filteredTypes.length / itemsPerPage);
+    const paginatedTypes = filteredTypes.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+    );
+
     return (
         <Layout>
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8 select-none">
@@ -203,86 +219,130 @@ export default function DocumentTypes() {
                         </p>
                     </div>
                 ) : (
-                    <Table>
-                        <TableHeader>
-                            <TableRow className="bg-slate-50 dark:bg-slate-950/50 hover:bg-slate-50 dark:hover:bg-slate-950/50">
-                                <TableHead className="font-bold text-slate-500 dark:text-slate-400 px-6 py-4 w-16">ID</TableHead>
-                                <TableHead className="font-bold text-slate-500 dark:text-slate-400 px-6 py-4">Type Name</TableHead>
-                                <TableHead className="font-bold text-slate-500 dark:text-slate-400 px-6 py-4">Description</TableHead>
-                                <TableHead className="font-bold text-slate-500 dark:text-slate-400 px-6 py-4 w-32">Status</TableHead>
-                                <TableHead className="font-bold text-slate-500 dark:text-slate-400 px-6 py-4 w-36">Created Date</TableHead>
-                                <TableHead className="font-bold text-slate-500 dark:text-slate-400 px-6 py-4 w-28 text-right">Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {filteredTypes.map((type) => (
-                                <TableRow key={type.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-950/20 border-b border-slate-100 dark:border-slate-800 transition-colors">
-                                    <TableCell className="px-6 py-4 font-semibold text-slate-500 dark:text-slate-400 text-xs">
-                                        #{type.id}
-                                    </TableCell>
-                                    <TableCell className="px-6 py-4">
-                                        <span className="font-bold text-slate-800 dark:text-slate-100 text-sm">
-                                            {type.documentTypeName}
-                                        </span>
-                                    </TableCell>
-                                    <TableCell className="px-6 py-4 text-slate-600 dark:text-slate-300 text-sm max-w-xs truncate">
-                                        {type.description || <span className="text-slate-400 italic">No description</span>}
-                                    </TableCell>
-                                    <TableCell className="px-6 py-4">
-                                        <button
-                                            onClick={() => handleToggleStatus(type)}
-                                            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold select-none cursor-pointer transition-colors duration-200 border ${type.isActive
-                                                ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/30"
-                                                : "bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border-red-200 dark:border-red-900/30"
-                                                }`}
-                                        >
-                                            {type.isActive ? (
-                                                <>
-                                                    <CheckCircle2 size={12} />
-                                                    Active
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <XCircle size={12} />
-                                                    Inactive
-                                                </>
-                                            )}
-                                        </button>
-                                    </TableCell>
-                                    <TableCell className="px-6 py-4 text-slate-600 dark:text-slate-300 text-sm">
-                                        <div className="flex items-center gap-1.5">
-                                            <Calendar size={14} className="text-slate-400" />
-                                            <span>
-                                                {new Date(type.createdAt).toLocaleDateString(undefined, {
-                                                    year: "numeric",
-                                                    month: "short",
-                                                    day: "numeric",
-                                                })}
-                                            </span>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell className="px-6 py-4 text-right">
-                                        <div className="flex justify-end gap-2">
-                                            <button
-                                                onClick={() => handleOpenEdit(type)}
-                                                className="p-2 text-slate-400 hover:text-[#18beb8] hover:bg-teal-50 dark:hover:bg-teal-950/40 rounded-lg transition"
-                                                title="Edit Type"
-                                            >
-                                                <Edit2 size={16} />
-                                            </button>
-                                            <button
-                                                onClick={() => handleDelete(type)}
-                                                className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition"
-                                                title="Delete Type"
-                                            >
-                                                <Trash2 size={16} />
-                                            </button>
-                                        </div>
-                                    </TableCell>
+                    <>
+                        <Table>
+                            <TableHeader>
+                                <TableRow className="bg-slate-50 dark:bg-slate-950/50 hover:bg-slate-50 dark:hover:bg-slate-950/50">
+                                    <TableHead className="font-bold text-slate-500 dark:text-slate-400 px-6 py-4 w-16">ID</TableHead>
+                                    <TableHead className="font-bold text-slate-500 dark:text-slate-400 px-6 py-4">Type Name</TableHead>
+                                    <TableHead className="font-bold text-slate-500 dark:text-slate-400 px-6 py-4">Description</TableHead>
+                                    <TableHead className="font-bold text-slate-500 dark:text-slate-400 px-6 py-4 w-32">Status</TableHead>
+                                    <TableHead className="font-bold text-slate-500 dark:text-slate-400 px-6 py-4 w-36">Created Date</TableHead>
+                                    <TableHead className="font-bold text-slate-500 dark:text-slate-400 px-6 py-4 w-28 text-right">Actions</TableHead>
                                 </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
+                            </TableHeader>
+                            <TableBody>
+                                {paginatedTypes.map((type) => (
+                                    <TableRow key={type.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-950/20 border-b border-slate-100 dark:border-slate-800 transition-colors">
+                                        <TableCell className="px-6 py-4 font-semibold text-slate-500 dark:text-slate-400 text-xs">
+                                            #{type.id}
+                                        </TableCell>
+                                        <TableCell className="px-6 py-4">
+                                            <span className="font-bold text-slate-800 dark:text-slate-100 text-sm">
+                                                {type.documentTypeName}
+                                            </span>
+                                        </TableCell>
+                                        <TableCell className="px-6 py-4 text-slate-600 dark:text-slate-300 text-sm max-w-xs truncate">
+                                            {type.description || <span className="text-slate-400 italic">No description</span>}
+                                        </TableCell>
+                                        <TableCell className="px-6 py-4">
+                                            <button
+                                                onClick={() => handleToggleStatus(type)}
+                                                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold select-none cursor-pointer transition-colors duration-200 border ${type.isActive
+                                                    ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/30"
+                                                    : "bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border-red-200 dark:border-red-900/30"
+                                                    }`}
+                                            >
+                                                {type.isActive ? (
+                                                    <>
+                                                        <CheckCircle2 size={12} />
+                                                        Active
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <XCircle size={12} />
+                                                        Inactive
+                                                    </>
+                                                )}
+                                            </button>
+                                        </TableCell>
+                                        <TableCell className="px-6 py-4 text-slate-600 dark:text-slate-300 text-sm">
+                                            <div className="flex items-center gap-1.5">
+                                                <Calendar size={14} className="text-slate-400" />
+                                                <span>
+                                                    {new Date(type.createdAt).toLocaleDateString(undefined, {
+                                                        year: "numeric",
+                                                        month: "short",
+                                                        day: "numeric",
+                                                    })}
+                                                </span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="px-6 py-4 text-right">
+                                            <div className="flex justify-end gap-2">
+                                                <button
+                                                    onClick={() => handleOpenEdit(type)}
+                                                    className="p-2 text-slate-400 hover:text-[#18beb8] hover:bg-teal-50 dark:hover:bg-teal-950/40 rounded-lg transition"
+                                                    title="Edit Type"
+                                                >
+                                                    <Edit2 size={16} />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDelete(type)}
+                                                    className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition"
+                                                    title="Delete Type"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+
+                        {/* Pagination Controls */}
+                        {totalPages > 1 && (
+                            <div className="bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 transition-colors select-none">
+                                <p className="text-xs text-slate-500 dark:text-slate-400">
+                                    Showing <span className="font-semibold text-slate-800 dark:text-slate-200">{(currentPage - 1) * itemsPerPage + 1}</span> to{" "}
+                                    <span className="font-semibold text-slate-800 dark:text-slate-200">
+                                        {Math.min(currentPage * itemsPerPage, filteredTypes.length)}
+                                    </span>{" "}
+                                    of <span className="font-semibold text-slate-800 dark:text-slate-200">{filteredTypes.length}</span> entries
+                                </p>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                                        disabled={currentPage === 1}
+                                        className="px-4 py-2 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-950 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                                    >
+                                        Previous
+                                    </button>
+                                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                                        <button
+                                            key={page}
+                                            onClick={() => setCurrentPage(page)}
+                                            className={`w-8 h-8 rounded-xl text-xs font-bold transition flex items-center justify-center ${
+                                                page === currentPage
+                                                    ? "bg-[#18beb8] text-white shadow-md shadow-teal-500/10"
+                                                    : "border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-950"
+                                            }`}
+                                        >
+                                            {page}
+                                        </button>
+                                    ))}
+                                    <button
+                                        onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                                        disabled={currentPage === totalPages}
+                                        className="px-4 py-2 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-950 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                                    >
+                                        Next
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
 
@@ -357,7 +417,7 @@ export default function DocumentTypes() {
                                 >
                                     {submitting ? (
                                         <>
-                                            <Loader2 className="h-5 h-5 animate-spin" />
+                                            <Loader2 className="h-5 w-5 animate-spin" />
                                             Saving...
                                         </>
                                     ) : (

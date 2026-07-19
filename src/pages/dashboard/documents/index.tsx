@@ -17,6 +17,10 @@ export default function Documents() {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [uploading, setUploading] = useState(false);
 
+    // Pagination states
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
+
     const { register, handleSubmit, reset } = useForm();
 
     const fetchDocuments = async () => {
@@ -46,6 +50,11 @@ export default function Documents() {
         fetchDocuments();
         fetchDocTypes();
     }, []);
+
+    // Reset pagination page when search changes
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -97,6 +106,13 @@ export default function Documents() {
     const filteredDocs = documents.filter((doc) =>
         doc.documentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         doc.description.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    // Calculate pagination slices
+    const totalPages = Math.ceil(filteredDocs.length / itemsPerPage);
+    const paginatedDocs = filteredDocs.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
     );
 
     return (
@@ -155,76 +171,120 @@ export default function Documents() {
                     </p>
                 </div>
             ) : (
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredDocs.map((doc: any) => {
-                        const fileExt = doc.filePath.split(".").pop()?.toUpperCase() || "FILE";
-                        return (
-                            <div key={doc.id} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-6 shadow-sm hover:shadow-md hover:border-[#18beb8]/30 transition duration-300 flex flex-col justify-between transition-colors">
-                                <div>
-                                    <div className="flex items-center justify-between mb-4">
-                                        <div className="flex gap-2 items-center">
-                                            <div className="p-3 bg-teal-50 dark:bg-teal-950/40 text-[#18beb8] dark:text-[#18beb8] rounded-xl font-bold text-xs tracking-wider border border-teal-100/50 dark:border-teal-950/20">
-                                                {fileExt}
-                                            </div>
-                                            {doc.documentType && (
-                                                <div className="flex items-center gap-1 p-3 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 rounded-xl font-bold text-xs tracking-wider border border-indigo-100/50 dark:border-indigo-950/20">
-                                                    <Tags size={12} />
-                                                    {doc.documentType.documentTypeName}
+                <div className="space-y-6 select-none animate-in fade-in duration-200">
+                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {paginatedDocs.map((doc: any) => {
+                            const fileExt = doc.filePath.split(".").pop()?.toUpperCase() || "FILE";
+                            return (
+                                <div key={doc.id} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-6 shadow-sm hover:shadow-md hover:border-[#18beb8]/30 transition duration-300 flex flex-col justify-between transition-colors">
+                                    <div>
+                                        <div className="flex items-center justify-between mb-4">
+                                            <div className="flex gap-2 items-center">
+                                                <div className="p-3 bg-teal-50 dark:bg-teal-950/40 text-[#18beb8] dark:text-[#18beb8] rounded-xl font-bold text-xs tracking-wider border border-teal-100/50 dark:border-teal-950/20">
+                                                    {fileExt}
                                                 </div>
-                                            )}
-                                        </div>
-                                        <div className="flex gap-1">
-                                            <Link href={`/dashboard/documents/${doc.id}`} title="View Details">
-                                                <button className="p-2 text-slate-400 hover:text-[#18beb8] hover:bg-teal-50 dark:hover:bg-teal-950/40 rounded-lg transition duration-200">
-                                                    <Eye size={18} />
+                                                {doc.documentType && (
+                                                    <div className="flex items-center gap-1 p-3 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 rounded-xl font-bold text-xs tracking-wider border border-indigo-100/50 dark:border-indigo-950/20">
+                                                        <Tags size={12} />
+                                                        {doc.documentType.documentTypeName}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="flex gap-1">
+                                                <Link href={`/dashboard/documents/${doc.id}`} title="View Details">
+                                                    <button className="p-2 text-slate-400 hover:text-[#18beb8] hover:bg-teal-50 dark:hover:bg-teal-950/40 rounded-lg transition duration-200">
+                                                        <Eye size={18} />
+                                                    </button>
+                                                </Link>
+                                                <a
+                                                    href={`http://localhost:5000/uploads/${doc.filePath}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    download
+                                                    title="Download File"
+                                                >
+                                                    <button className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded-lg transition duration-200">
+                                                        <Download size={18} />
+                                                    </button>
+                                                </a>
+                                                <button
+                                                    onClick={() => handleDelete(doc.id)}
+                                                    className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition duration-200"
+                                                    title="Delete Document"
+                                                >
+                                                    <Trash size={18} />
                                                 </button>
-                                            </Link>
-                                            <a
-                                                href={`http://localhost:5000/uploads/${doc.filePath}`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                download
-                                                title="Download File"
-                                            >
-                                                <button className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded-lg transition duration-200">
-                                                    <Download size={18} />
-                                                </button>
-                                            </a>
-                                            <button
-                                                onClick={() => handleDelete(doc.id)}
-                                                className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition duration-200"
-                                                title="Delete Document"
-                                            >
-                                                <Trash size={18} />
-                                            </button>
+                                            </div>
                                         </div>
+
+                                        <h2 className="text-lg font-bold text-slate-800 dark:text-white line-clamp-1 mb-2">
+                                            {doc.documentName}
+                                        </h2>
+                                        <p className="text-slate-500 dark:text-slate-400 text-sm line-clamp-3 mb-6">
+                                            {doc.description || "No description provided."}
+                                        </p>
                                     </div>
 
-                                    <h2 className="text-lg font-bold text-slate-800 dark:text-white line-clamp-1 mb-2">
-                                        {doc.documentName}
-                                    </h2>
-                                    <p className="text-slate-500 dark:text-slate-400 text-sm line-clamp-3 mb-6">
-                                        {doc.description || "No description provided."}
-                                    </p>
+                                    <div className="border-t border-slate-100 dark:border-slate-800 pt-4 flex flex-col gap-2 text-xs text-slate-400 dark:text-slate-500 select-none">
+                                        <div className="flex items-center gap-2">
+                                            <User size={14} className="text-slate-400 dark:text-slate-500" />
+                                            <span>Uploaded by: <strong className="text-slate-600 dark:text-slate-300">{doc.user?.username || "Admin"}</strong></span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <Calendar size={14} className="text-slate-400 dark:text-slate-500" />
+                                            <span>{new Date(doc.createdAt).toLocaleDateString(undefined, {
+                                                year: "numeric",
+                                                month: "short",
+                                                day: "numeric"
+                                            })}</span>
+                                        </div>
+                                    </div>
                                 </div>
+                            );
+                        })}
+                    </div>
 
-                                <div className="border-t border-slate-100 dark:border-slate-800 pt-4 flex flex-col gap-2 text-xs text-slate-400 dark:text-slate-500 select-none">
-                                    <div className="flex items-center gap-2">
-                                        <User size={14} className="text-slate-400 dark:text-slate-500" />
-                                        <span>Uploaded by: <strong className="text-slate-600 dark:text-slate-300">{doc.user?.username || "Admin"}</strong></span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <Calendar size={14} className="text-slate-400 dark:text-slate-500" />
-                                        <span>{new Date(doc.createdAt).toLocaleDateString(undefined, {
-                                            year: "numeric",
-                                            month: "short",
-                                            day: "numeric"
-                                        })}</span>
-                                    </div>
-                                </div>
+                    {/* Pagination Controls */}
+                    {totalPages > 1 && (
+                        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 transition-colors transition-colors">
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                                Showing <span className="font-semibold text-slate-800 dark:text-slate-200">{(currentPage - 1) * itemsPerPage + 1}</span> to{" "}
+                                <span className="font-semibold text-slate-800 dark:text-slate-200">
+                                    {Math.min(currentPage * itemsPerPage, filteredDocs.length)}
+                                </span>{" "}
+                                of <span className="font-semibold text-slate-800 dark:text-slate-200">{filteredDocs.length}</span> entries
+                            </p>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                                    disabled={currentPage === 1}
+                                    className="px-4 py-2 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-950 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                                >
+                                    Previous
+                                </button>
+                                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                                    <button
+                                        key={page}
+                                        onClick={() => setCurrentPage(page)}
+                                        className={`w-8 h-8 rounded-xl text-xs font-bold transition flex items-center justify-center ${
+                                            page === currentPage
+                                                ? "bg-[#18beb8] text-white shadow-md shadow-teal-500/10"
+                                                : "border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-950"
+                                        }`}
+                                    >
+                                        {page}
+                                    </button>
+                                ))}
+                                <button
+                                    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                                    disabled={currentPage === totalPages}
+                                    className="px-4 py-2 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-950 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                                >
+                                    Next
+                                </button>
                             </div>
-                        );
-                    })}
+                        </div>
+                    )}
                 </div>
             )}
 
