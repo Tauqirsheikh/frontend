@@ -6,6 +6,7 @@ import {
     LogOut,
     Users,
     Tags,
+    Briefcase,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
@@ -28,6 +29,11 @@ const Sidebar = () => {
             name: "Documents",
             icon: FileText,
             href: "/dashboard/documents",
+        },
+        {
+            name: "Employees",
+            icon: Briefcase,
+            href: "/dashboard/employees",
         },
         {
             name: "Users",
