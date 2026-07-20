@@ -23,6 +23,9 @@ import {
     Phone,
     Layers,
     UserCheck,
+    MoreHorizontal,
+    ArrowUpDown,
+    ChevronDown,
 } from "lucide-react";
 import {
     Table,
@@ -32,6 +35,15 @@ import {
     TableRow,
     TableCell,
 } from "@/components/ui/table";
+import {
+    DropdownMenu,
+    DropdownMenuTrigger,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuCheckboxItem,
+    DropdownMenuSeparator,
+    DropdownMenuLabel,
+} from "@/components/ui/dropdown-menu";
 
 interface EmployeeType {
     id: number;
@@ -53,6 +65,24 @@ export default function Employees() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingEmployee, setEditingEmployee] = useState<EmployeeType | null>(null);
     const [submitting, setSubmitting] = useState(false);
+
+    // Selection state
+    const [selectedIds, setSelectedIds] = useState<number[]>([]);
+
+    // Sorting states
+    const [sortField, setSortField] = useState<string>("id");
+    const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+
+    // Column visibility state
+    const [visibleColumns, setVisibleColumns] = useState({
+        employeeCode: true,
+        employee: true,
+        contactInfo: true,
+        designation: true,
+        department: true,
+        status: true,
+        joiningDate: true,
+    });
 
     // Pagination states
     const [currentPage, setCurrentPage] = useState(1);
@@ -82,6 +112,15 @@ export default function Employees() {
         setCurrentPage(1);
     }, [searchTerm]);
 
+    const handleSort = (field: string) => {
+        if (sortField === field) {
+            setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+        } else {
+            setSortField(field);
+            setSortOrder("asc");
+        }
+    };
+
     const handleOpenCreate = () => {
         setEditingEmployee(null);
         reset({
@@ -107,7 +146,6 @@ export default function Employees() {
         setValue("mobile", emp.mobile);
         setValue("department", emp.department);
         setValue("designation", emp.designation);
-        // Format joiningDate to YYYY-MM-DD for date input prefill
         const formattedDate = emp.joiningDate ? new Date(emp.joiningDate).toISOString().split("T")[0] : "";
         setValue("joiningDate", formattedDate);
         setValue("status", emp.status);
@@ -140,7 +178,6 @@ export default function Employees() {
         setSubmitting(true);
         try {
             if (editingEmployee) {
-                // Update mode
                 await updateEmployee(editingEmployee.id, {
                     employeeCode: data.employeeCode,
                     firstName: data.firstName,
@@ -154,7 +191,6 @@ export default function Employees() {
                 });
                 toast.success("Employee details updated successfully");
             } else {
-                // Create mode
                 await createEmployee({
                     employeeCode: data.employeeCode,
                     firstName: data.firstName,
@@ -192,6 +228,7 @@ export default function Employees() {
         }
     };
 
+    // Filtering
     const filteredEmployees = employees.filter(
         (emp) =>
             emp.employeeCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -202,12 +239,56 @@ export default function Employees() {
             emp.designation.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    // Calculate pagination slices
-    const totalPages = Math.ceil(filteredEmployees.length / itemsPerPage);
-    const paginatedEmployees = filteredEmployees.slice(
+    // Sorting
+    const sortedEmployees = [...filteredEmployees].sort((a: any, b: any) => {
+        let aValue = a[sortField];
+        let bValue = b[sortField];
+
+        if (sortField === "employee") {
+            aValue = `${a.firstName} ${a.lastName}`;
+            bValue = `${b.firstName} ${b.lastName}`;
+        }
+
+        if (typeof aValue === "string") {
+            aValue = aValue.toLowerCase();
+            bValue = (bValue || "").toLowerCase();
+        }
+
+        if (aValue < bValue) return sortOrder === "asc" ? -1 : 1;
+        if (aValue > bValue) return sortOrder === "asc" ? 1 : -1;
+        return 0;
+    });
+
+    // Pagination
+    const totalPages = Math.ceil(sortedEmployees.length / itemsPerPage);
+    const paginatedEmployees = sortedEmployees.slice(
         (currentPage - 1) * itemsPerPage,
         currentPage * itemsPerPage
     );
+
+    // Selection handlers
+    const isAllPageSelected =
+        paginatedEmployees.length > 0 &&
+        paginatedEmployees.every((e) => selectedIds.includes(e.id));
+
+    const handleSelectAll = () => {
+        if (isAllPageSelected) {
+            const pageIds = paginatedEmployees.map((e) => e.id);
+            setSelectedIds(selectedIds.filter((id) => !pageIds.includes(id)));
+        } else {
+            const pageIds = paginatedEmployees.map((e) => e.id);
+            const combined = Array.from(new Set([...selectedIds, ...pageIds]));
+            setSelectedIds(combined);
+        }
+    };
+
+    const handleSelectRow = (id: number) => {
+        if (selectedIds.includes(id)) {
+            setSelectedIds(selectedIds.filter((i) => i !== id));
+        } else {
+            setSelectedIds([...selectedIds, id]);
+        }
+    };
 
     return (
         <Layout>
@@ -225,22 +306,75 @@ export default function Employees() {
                 </button>
             </div>
 
-            {/* Search Bar */}
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 mb-6 shadow-sm flex items-center transition-colors">
+            {/* Filter and Columns Top Controls */}
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 mb-6 shadow-sm flex items-center justify-between gap-4 transition-colors">
                 <div className="relative flex-1">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                     <input
                         type="text"
-                        placeholder="Search by code, name, email, department, or designation..."
+                        placeholder="Filter employees..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#18beb8]/20 focus:border-[#18beb8] transition duration-300 placeholder:text-slate-400"
+                        className="w-full pl-11 pr-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#18beb8]/20 focus:border-[#18beb8] transition duration-300 placeholder:text-slate-400"
                     />
                 </div>
+
+                {/* Columns Visibility Dropdown */}
+                <DropdownMenu>
+                    <DropdownMenuTrigger className="flex items-center gap-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                        Columns <ChevronDown size={14} />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuLabel className="text-xs">Toggle Columns</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuCheckboxItem
+                            checked={visibleColumns.employeeCode}
+                            onCheckedChange={(val) => setVisibleColumns({ ...visibleColumns, employeeCode: !!val })}
+                        >
+                            Code
+                        </DropdownMenuCheckboxItem>
+                        <DropdownMenuCheckboxItem
+                            checked={visibleColumns.employee}
+                            onCheckedChange={(val) => setVisibleColumns({ ...visibleColumns, employee: !!val })}
+                        >
+                            Employee
+                        </DropdownMenuCheckboxItem>
+                        <DropdownMenuCheckboxItem
+                            checked={visibleColumns.contactInfo}
+                            onCheckedChange={(val) => setVisibleColumns({ ...visibleColumns, contactInfo: !!val })}
+                        >
+                            Contact Info
+                        </DropdownMenuCheckboxItem>
+                        <DropdownMenuCheckboxItem
+                            checked={visibleColumns.designation}
+                            onCheckedChange={(val) => setVisibleColumns({ ...visibleColumns, designation: !!val })}
+                        >
+                            Designation
+                        </DropdownMenuCheckboxItem>
+                        <DropdownMenuCheckboxItem
+                            checked={visibleColumns.department}
+                            onCheckedChange={(val) => setVisibleColumns({ ...visibleColumns, department: !!val })}
+                        >
+                            Department
+                        </DropdownMenuCheckboxItem>
+                        <DropdownMenuCheckboxItem
+                            checked={visibleColumns.status}
+                            onCheckedChange={(val) => setVisibleColumns({ ...visibleColumns, status: !!val })}
+                        >
+                            Status
+                        </DropdownMenuCheckboxItem>
+                        <DropdownMenuCheckboxItem
+                            checked={visibleColumns.joiningDate}
+                            onCheckedChange={(val) => setVisibleColumns({ ...visibleColumns, joiningDate: !!val })}
+                        >
+                            Joined Date
+                        </DropdownMenuCheckboxItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </div>
 
-            {/* Employees Table */}
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden transition-colors">
+            {/* Employees Data Table */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden transition-colors w-full">
                 {loading ? (
                     <div className="p-8 space-y-4">
                         {[1, 2, 3].map((n) => (
@@ -265,151 +399,253 @@ export default function Employees() {
                     <>
                         <Table>
                             <TableHeader>
-                                <TableRow className="bg-slate-50 dark:bg-slate-950/50 hover:bg-slate-50 dark:hover:bg-slate-950/50">
-                                    <TableHead className="font-bold text-slate-500 dark:text-slate-400 px-5 py-3.5 w-24">Code</TableHead>
-                                    <TableHead className="font-bold text-slate-500 dark:text-slate-400 px-5 py-3.5">Employee</TableHead>
-                                    <TableHead className="font-bold text-slate-500 dark:text-slate-400 px-5 py-3.5">Contact Info</TableHead>
-                                    <TableHead className="font-bold text-slate-500 dark:text-slate-400 px-5 py-3.5">Designation</TableHead>
-                                    <TableHead className="font-bold text-slate-500 dark:text-slate-400 px-5 py-3.5">Department</TableHead>
-                                    <TableHead className="font-bold text-slate-500 dark:text-slate-400 px-5 py-3.5 w-28">Status</TableHead>
-                                    <TableHead className="font-bold text-slate-500 dark:text-slate-400 px-5 py-3.5 w-32">Joined Date</TableHead>
-                                    <TableHead className="font-bold text-slate-500 dark:text-slate-400 px-5 py-3.5 w-28 text-right">Actions</TableHead>
+                                <TableRow className="bg-slate-50 dark:bg-slate-950/50 hover:bg-slate-50 dark:hover:bg-slate-950/50 border-b border-slate-200 dark:border-slate-800">
+                                    <TableHead className="w-12 px-4 py-3.5">
+                                        <input
+                                            type="checkbox"
+                                            checked={isAllPageSelected}
+                                            onChange={handleSelectAll}
+                                            className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-[#18beb8] focus:ring-[#18beb8]/20 cursor-pointer"
+                                        />
+                                    </TableHead>
+
+                                    {visibleColumns.employeeCode && (
+                                        <TableHead className="px-4 py-3.5 w-24">
+                                            <button
+                                                onClick={() => handleSort("employeeCode")}
+                                                className="flex items-center gap-1 font-bold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition"
+                                            >
+                                                Code <ArrowUpDown size={12} />
+                                            </button>
+                                        </TableHead>
+                                    )}
+
+                                    {visibleColumns.employee && (
+                                        <TableHead className="px-4 py-3.5">
+                                            <button
+                                                onClick={() => handleSort("employee")}
+                                                className="flex items-center gap-1 font-bold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition"
+                                            >
+                                                Employee <ArrowUpDown size={12} />
+                                            </button>
+                                        </TableHead>
+                                    )}
+
+                                    {visibleColumns.contactInfo && (
+                                        <TableHead className="px-4 py-3.5 font-bold text-slate-600 dark:text-slate-400">
+                                            Contact Info
+                                        </TableHead>
+                                    )}
+
+                                    {visibleColumns.designation && (
+                                        <TableHead className="px-4 py-3.5">
+                                            <button
+                                                onClick={() => handleSort("designation")}
+                                                className="flex items-center gap-1 font-bold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition"
+                                            >
+                                                Designation <ArrowUpDown size={12} />
+                                            </button>
+                                        </TableHead>
+                                    )}
+
+                                    {visibleColumns.department && (
+                                        <TableHead className="px-4 py-3.5">
+                                            <button
+                                                onClick={() => handleSort("department")}
+                                                className="flex items-center gap-1 font-bold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition"
+                                            >
+                                                Department <ArrowUpDown size={12} />
+                                            </button>
+                                        </TableHead>
+                                    )}
+
+                                    {visibleColumns.status && (
+                                        <TableHead className="px-4 py-3.5 w-28">
+                                            <button
+                                                onClick={() => handleSort("status")}
+                                                className="flex items-center gap-1 font-bold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition"
+                                            >
+                                                Status <ArrowUpDown size={12} />
+                                            </button>
+                                        </TableHead>
+                                    )}
+
+                                    {visibleColumns.joiningDate && (
+                                        <TableHead className="px-4 py-3.5 w-32">
+                                            <button
+                                                onClick={() => handleSort("joiningDate")}
+                                                className="flex items-center gap-1 font-bold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition"
+                                            >
+                                                Joined Date <ArrowUpDown size={12} />
+                                            </button>
+                                        </TableHead>
+                                    )}
+
+                                    <TableHead className="px-4 py-3.5 w-16 text-right font-bold text-slate-600 dark:text-slate-400"></TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {paginatedEmployees.map((emp) => (
-                                    <TableRow key={emp.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-950/20 border-b border-slate-100 dark:border-slate-800 transition-colors">
-                                        <TableCell className="px-5 py-3.5 font-bold text-slate-600 dark:text-slate-400 text-xs">
-                                            #{emp.employeeCode}
-                                        </TableCell>
-                                        <TableCell className="px-5 py-3.5">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-full bg-teal-50 dark:bg-teal-950/40 text-[#18beb8] dark:text-[#18beb8] flex items-center justify-center font-bold text-xs shrink-0 uppercase border border-teal-100/50 dark:border-teal-950/20">
-                                                    {emp.firstName.substring(0, 1)}{emp.lastName.substring(0, 1)}
-                                                </div>
-                                                <span className="font-bold text-slate-800 dark:text-slate-100 text-sm whitespace-nowrap">
-                                                    {emp.firstName} {emp.lastName}
-                                                </span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="px-5 py-3.5">
-                                            <div className="space-y-1 text-xs">
-                                                <div className="flex items-center gap-1 text-slate-600 dark:text-slate-300">
-                                                    <Mail size={12} className="text-slate-400 shrink-0" />
-                                                    <span className="truncate max-w-[180px]" title={emp.email}>{emp.email}</span>
-                                                </div>
-                                                <div className="flex items-center gap-1 text-slate-600 dark:text-slate-300">
-                                                    <Phone size={12} className="text-slate-400 shrink-0" />
-                                                    <span>{emp.mobile}</span>
-                                                </div>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="px-5 py-3.5 text-slate-700 dark:text-slate-200 text-sm font-semibold whitespace-nowrap">
-                                            {emp.designation}
-                                        </TableCell>
-                                        <TableCell className="px-5 py-3.5 text-slate-600 dark:text-slate-300 text-sm">
-                                            <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 whitespace-nowrap">
-                                                <Layers size={10} className="text-slate-400 shrink-0" />
-                                                {emp.department}
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="px-5 py-3.5">
-                                            <button
-                                                onClick={() => handleToggleStatus(emp)}
-                                                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold select-none cursor-pointer transition-colors duration-200 border whitespace-nowrap ${emp.status
-                                                    ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/30"
-                                                    : "bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border-red-200 dark:border-red-900/30"
-                                                    }`}
-                                            >
-                                                {emp.status ? (
-                                                    <>
-                                                        <CheckCircle2 size={12} />
-                                                        Active
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <XCircle size={12} />
-                                                        Inactive
-                                                    </>
-                                                )}
-                                            </button>
-                                        </TableCell>
-                                        <TableCell className="px-5 py-3.5 text-slate-600 dark:text-slate-300 text-sm whitespace-nowrap">
-                                            <div className="flex items-center gap-1.5">
-                                                <Calendar size={14} className="text-slate-400 shrink-0" />
-                                                <span>
-                                                    {new Date(emp.joiningDate).toLocaleDateString(undefined, {
-                                                        year: "numeric",
-                                                        month: "short",
-                                                        day: "numeric",
-                                                    })}
-                                                </span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="px-5 py-3.5 text-right">
-                                            <div className="flex justify-end gap-1.5">
-                                                <button
-                                                    onClick={() => handleOpenEdit(emp)}
-                                                    className="p-1.5 text-slate-400 hover:text-[#18beb8] hover:bg-teal-50 dark:hover:bg-teal-950/40 rounded-lg transition"
-                                                    title="Edit Profile"
-                                                >
-                                                    <Edit2 size={16} />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDelete(emp)}
-                                                    className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition"
-                                                    title="Delete Profile"
-                                                >
-                                                    <Trash2 size={16} />
-                                                </button>
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
+                                {paginatedEmployees.map((emp) => {
+                                    const isSelected = selectedIds.includes(emp.id);
+                                    return (
+                                        <TableRow
+                                            key={emp.id}
+                                            className={`hover:bg-slate-50/50 dark:hover:bg-slate-950/20 border-b border-slate-100 dark:border-slate-800 transition-colors ${isSelected ? "bg-teal-50/30 dark:bg-teal-950/20" : ""}`}
+                                        >
+                                            <TableCell className="px-4 py-3.5">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={isSelected}
+                                                    onChange={() => handleSelectRow(emp.id)}
+                                                    className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-[#18beb8] focus:ring-[#18beb8]/20 cursor-pointer"
+                                                />
+                                            </TableCell>
+
+                                            {visibleColumns.employeeCode && (
+                                                <TableCell className="px-4 py-3.5 font-bold text-slate-600 dark:text-slate-400 text-xs">
+                                                    #{emp.employeeCode}
+                                                </TableCell>
+                                            )}
+
+                                            {visibleColumns.employee && (
+                                                <TableCell className="px-4 py-3.5">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-8 h-8 rounded-full bg-teal-50 dark:bg-teal-950/40 text-[#18beb8] dark:text-[#18beb8] flex items-center justify-center font-bold text-xs shrink-0 uppercase border border-teal-100/50 dark:border-teal-950/20">
+                                                            {emp.firstName.substring(0, 1)}{emp.lastName.substring(0, 1)}
+                                                        </div>
+                                                        <span className="font-bold text-slate-800 dark:text-slate-100 text-sm whitespace-nowrap">
+                                                            {emp.firstName} {emp.lastName}
+                                                        </span>
+                                                    </div>
+                                                </TableCell>
+                                            )}
+
+                                            {visibleColumns.contactInfo && (
+                                                <TableCell className="px-4 py-3.5">
+                                                    <div className="space-y-1 text-xs">
+                                                        <div className="flex items-center gap-1 text-slate-600 dark:text-slate-300">
+                                                            <Mail size={12} className="text-slate-400 shrink-0" />
+                                                            <span className="truncate max-w-[180px]" title={emp.email}>{emp.email}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-1 text-slate-600 dark:text-slate-300">
+                                                            <Phone size={12} className="text-slate-400 shrink-0" />
+                                                            <span>{emp.mobile}</span>
+                                                        </div>
+                                                    </div>
+                                                </TableCell>
+                                            )}
+
+                                            {visibleColumns.designation && (
+                                                <TableCell className="px-4 py-3.5 text-slate-700 dark:text-slate-200 text-sm font-semibold whitespace-nowrap">
+                                                    {emp.designation}
+                                                </TableCell>
+                                            )}
+
+                                            {visibleColumns.department && (
+                                                <TableCell className="px-4 py-3.5 text-slate-600 dark:text-slate-300 text-sm">
+                                                    <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 whitespace-nowrap">
+                                                        <Layers size={10} className="text-slate-400 shrink-0" />
+                                                        {emp.department}
+                                                    </div>
+                                                </TableCell>
+                                            )}
+
+                                            {visibleColumns.status && (
+                                                <TableCell className="px-4 py-3.5">
+                                                    <button
+                                                        onClick={() => handleToggleStatus(emp)}
+                                                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold select-none cursor-pointer transition-colors duration-200 border whitespace-nowrap ${emp.status
+                                                            ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/30"
+                                                            : "bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border-red-200 dark:border-red-900/30"
+                                                            }`}
+                                                    >
+                                                        {emp.status ? (
+                                                            <>
+                                                                <CheckCircle2 size={12} />
+                                                                Active
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <XCircle size={12} />
+                                                                Inactive
+                                                            </>
+                                                        )}
+                                                    </button>
+                                                </TableCell>
+                                            )}
+
+                                            {visibleColumns.joiningDate && (
+                                                <TableCell className="px-4 py-3.5 text-slate-600 dark:text-slate-300 text-sm whitespace-nowrap">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <Calendar size={14} className="text-slate-400 shrink-0" />
+                                                        <span>
+                                                            {new Date(emp.joiningDate).toLocaleDateString(undefined, {
+                                                                year: "numeric",
+                                                                month: "short",
+                                                                day: "numeric",
+                                                            })}
+                                                        </span>
+                                                    </div>
+                                                </TableCell>
+                                            )}
+
+                                            <TableCell className="px-4 py-3.5 text-right">
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition">
+                                                        <MoreHorizontal size={18} />
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end" className="w-40">
+                                                        <DropdownMenuItem onClick={() => handleOpenEdit(emp)}>
+                                                            <Edit2 size={14} className="mr-2 text-slate-500" />
+                                                            Edit Profile
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuSeparator />
+                                                        <DropdownMenuItem
+                                                            onClick={() => handleDelete(emp)}
+                                                            className="text-red-600 dark:text-red-400 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/40"
+                                                        >
+                                                            <Trash2 size={14} className="mr-2" />
+                                                            Delete
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            </TableCell>
+                                        </TableRow>
+                                    );
+                                })}
                             </TableBody>
                         </Table>
 
-                        {/* Pagination Controls */}
-                        {totalPages > 1 && (
-                            <div className="bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 transition-colors select-none">
-                                <p className="text-xs text-slate-500 dark:text-slate-400">
-                                    Showing <span className="font-semibold text-slate-800 dark:text-slate-200">{(currentPage - 1) * itemsPerPage + 1}</span> to{" "}
-                                    <span className="font-semibold text-slate-800 dark:text-slate-200">
-                                        {Math.min(currentPage * itemsPerPage, filteredEmployees.length)}
-                                    </span>{" "}
-                                    of <span className="font-semibold text-slate-800 dark:text-slate-200">{filteredEmployees.length}</span> entries
-                                </p>
-                                <div className="flex items-center gap-2">
-                                    <button
-                                        onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                                        disabled={currentPage === 1}
-                                        className="px-4 py-2 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-950 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                                    >
-                                        Previous
-                                    </button>
-                                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                                        <button
-                                            key={page}
-                                            onClick={() => setCurrentPage(page)}
-                                            className={`w-8 h-8 rounded-xl text-xs font-bold transition flex items-center justify-center ${
-                                                page === currentPage
-                                                    ? "bg-[#18beb8] text-white shadow-md shadow-teal-500/10"
-                                                    : "border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-950"
-                                            }`}
-                                        >
-                                            {page}
-                                        </button>
-                                    ))}
-                                    <button
-                                        onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-                                        disabled={currentPage === totalPages}
-                                        className="px-4 py-2 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-950 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                                    >
-                                        Next
-                                    </button>
-                                </div>
+                        {/* Footer - Selection count & Pagination */}
+                        <div className="bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 transition-colors select-none">
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                                <span className="font-semibold text-slate-800 dark:text-slate-200">
+                                    {selectedIds.length}
+                                </span>{" "}
+                                of{" "}
+                                <span className="font-semibold text-slate-800 dark:text-slate-200">
+                                    {filteredEmployees.length}
+                                </span>{" "}
+                                row(s) selected.
+                            </p>
+
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                                    disabled={currentPage === 1}
+                                    className="px-4 py-2 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-950 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                                >
+                                    Previous
+                                </button>
+                                <button
+                                    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                                    disabled={currentPage === totalPages || totalPages === 0}
+                                    className="px-4 py-2 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-950 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                                >
+                                    Next
+                                </button>
                             </div>
-                        )}
+                        </div>
                     </>
                 )}
             </div>
