@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import Layout from "@/components/layout";
-import { getUsers } from "@/services/user";
+import { getUsers, bulkDeleteUsers } from "@/services/user";
 import { toast } from "sonner";
 import {
     Search,
@@ -11,6 +11,9 @@ import {
     ArrowUpDown,
     ChevronDown,
     Shield,
+    RotateCw,
+    Trash2,
+    Loader2,
 } from "lucide-react";
 import {
     Table,
@@ -44,6 +47,10 @@ export default function UserList() {
 
     // Selection state
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
+
+    // Bulk Delete state
+    const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
+    const [bulkDeleting, setBulkDeleting] = useState(false);
 
     // Sorting states
     const [sortField, setSortField] = useState<string>("id");
@@ -89,6 +96,23 @@ export default function UserList() {
         } else {
             setSortField(field);
             setSortOrder("asc");
+        }
+    };
+
+    const handleBulkDelete = async () => {
+        if (selectedIds.length === 0) return;
+        setBulkDeleting(true);
+        try {
+            await bulkDeleteUsers(selectedIds);
+            toast.success(`Successfully deleted ${selectedIds.length} user(s)`);
+            setSelectedIds([]);
+            setIsBulkDeleteOpen(false);
+            fetchUsers();
+        } catch (error: any) {
+            console.error("Bulk delete error:", error);
+            toast.error(error.response?.data?.message || "Failed to delete selected users");
+        } finally {
+            setBulkDeleting(false);
         }
     };
 
@@ -151,9 +175,9 @@ export default function UserList() {
                 <p className="text-slate-500 dark:text-slate-400 mt-1">View and manage registered accounts in this workspace.</p>
             </div>
 
-            {/* Filter and Columns Top Controls */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 mb-6 shadow-sm flex items-center justify-between gap-4 transition-colors">
-                <div className="relative flex-1">
+            {/* Filter and Controls Top Bar */}
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 mb-6 shadow-sm flex items-center justify-between gap-3 transition-colors flex-wrap">
+                <div className="relative flex-1 min-w-[200px]">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                     <input
                         type="text"
@@ -164,40 +188,65 @@ export default function UserList() {
                     />
                 </div>
 
-                {/* Columns Visibility Dropdown */}
-                <DropdownMenu>
-                    <DropdownMenuTrigger className="flex items-center gap-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-                        Columns <ChevronDown size={14} />
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48">
-                        <DropdownMenuLabel className="text-xs">Toggle Columns</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuCheckboxItem
-                            checked={visibleColumns.id}
-                            onCheckedChange={(val) => setVisibleColumns({ ...visibleColumns, id: !!val })}
+                <div className="flex items-center gap-2">
+                    {/* Columns Visibility Dropdown */}
+                    <DropdownMenu>
+                        <DropdownMenuTrigger className="flex items-center gap-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                            Columns <ChevronDown size={14} />
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuLabel className="text-xs">Toggle Columns</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuCheckboxItem
+                                checked={visibleColumns.id}
+                                onCheckedChange={(val) => setVisibleColumns({ ...visibleColumns, id: !!val })}
+                            >
+                                ID
+                            </DropdownMenuCheckboxItem>
+                            <DropdownMenuCheckboxItem
+                                checked={visibleColumns.username}
+                                onCheckedChange={(val) => setVisibleColumns({ ...visibleColumns, username: !!val })}
+                            >
+                                User Details
+                            </DropdownMenuCheckboxItem>
+                            <DropdownMenuCheckboxItem
+                                checked={visibleColumns.email}
+                                onCheckedChange={(val) => setVisibleColumns({ ...visibleColumns, email: !!val })}
+                            >
+                                Email Address
+                            </DropdownMenuCheckboxItem>
+                            <DropdownMenuCheckboxItem
+                                checked={visibleColumns.createdAt}
+                                onCheckedChange={(val) => setVisibleColumns({ ...visibleColumns, createdAt: !!val })}
+                            >
+                                Registration Date
+                            </DropdownMenuCheckboxItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+
+                    {/* Refresh Button */}
+                    <button
+                        onClick={() => {
+                            toast.info("Refreshed users list");
+                            fetchUsers();
+                        }}
+                        className="flex items-center gap-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                        title="Refresh List"
+                    >
+                        <RotateCw size={14} className={loading ? "animate-spin text-[#18beb8]" : ""} />
+                    </button>
+
+                    {/* Bulk Delete Button (Only visible when records selected) */}
+                    {selectedIds.length > 0 && (
+                        <button
+                            onClick={() => setIsBulkDeleteOpen(true)}
+                            className="flex items-center gap-2 bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/40 hover:bg-red-100 dark:hover:bg-red-900/60 px-4 py-2.5 rounded-xl text-xs font-semibold transition animate-in fade-in zoom-in-95 duration-150"
                         >
-                            ID
-                        </DropdownMenuCheckboxItem>
-                        <DropdownMenuCheckboxItem
-                            checked={visibleColumns.username}
-                            onCheckedChange={(val) => setVisibleColumns({ ...visibleColumns, username: !!val })}
-                        >
-                            User Details
-                        </DropdownMenuCheckboxItem>
-                        <DropdownMenuCheckboxItem
-                            checked={visibleColumns.email}
-                            onCheckedChange={(val) => setVisibleColumns({ ...visibleColumns, email: !!val })}
-                        >
-                            Email Address
-                        </DropdownMenuCheckboxItem>
-                        <DropdownMenuCheckboxItem
-                            checked={visibleColumns.createdAt}
-                            onCheckedChange={(val) => setVisibleColumns({ ...visibleColumns, createdAt: !!val })}
-                        >
-                            Registration Date
-                        </DropdownMenuCheckboxItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
+                            <Trash2 size={14} />
+                            Delete Selected ({selectedIds.length})
+                        </button>
+                    )}
+                </div>
             </div>
 
             {/* Users Data Table */}
@@ -397,6 +446,48 @@ export default function UserList() {
                     </>
                 )}
             </div>
+
+            {/* Modal - Bulk Delete Confirmation */}
+            {isBulkDeleteOpen && (
+                <div className="fixed inset-0 bg-slate-900/40 dark:bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl w-[420px] max-w-full shadow-2xl animate-in fade-in zoom-in-95 duration-200 overflow-hidden border border-slate-100 dark:border-slate-800 p-6">
+                        <div className="flex items-center gap-3 mb-4 text-red-600 dark:text-red-400">
+                            <div className="p-3 bg-red-50 dark:bg-red-950/50 rounded-xl">
+                                <Trash2 size={24} />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-bold text-slate-800 dark:text-white">Delete Selected Users</h3>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">This action cannot be undone.</p>
+                            </div>
+                        </div>
+                        <p className="text-sm text-slate-600 dark:text-slate-300 mb-6">
+                            Are you sure you want to delete <strong className="text-slate-800 dark:text-white">{selectedIds.length}</strong> selected user(s)?
+                        </p>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setIsBulkDeleteOpen(false)}
+                                className="flex-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl py-2.5 font-semibold text-sm transition"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleBulkDelete}
+                                disabled={bulkDeleting}
+                                className="flex-1 bg-red-600 hover:bg-red-700 disabled:opacity-70 text-white rounded-xl py-2.5 font-semibold text-sm transition flex items-center justify-center gap-2 shadow-lg shadow-red-500/10"
+                            >
+                                {bulkDeleting ? (
+                                    <>
+                                        <Loader2 size={16} className="animate-spin" />
+                                        Deleting...
+                                    </>
+                                ) : (
+                                    "Delete Records"
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </Layout>
     );
 }

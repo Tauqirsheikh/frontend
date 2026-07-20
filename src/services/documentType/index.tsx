@@ -24,3 +24,8 @@ export const deleteDocumentType = async (id: string | number) => {
     const response = await api.delete(`/document-types/${id}`);
     return response.data;
 };
+
+export const bulkDeleteDocumentTypes = async (ids: number[]) => {
+    const response = await api.delete("/document-types/bulk-delete", { data: { ids } });
+    return response.data;
+};

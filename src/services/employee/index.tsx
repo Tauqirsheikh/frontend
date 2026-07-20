@@ -47,3 +47,8 @@ export const deleteEmployee = async (id: string | number) => {
     const response = await api.delete(`/employees/${id}`);
     return response.data;
 };
+
+export const bulkDeleteEmployees = async (ids: number[]) => {
+    const response = await api.delete("/employees/bulk-delete", { data: { ids } });
+    return response.data;
+};
