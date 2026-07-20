@@ -71,6 +71,10 @@ export default function Employees() {
     // Selection state
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
+    // Single item Delete state
+    const [deletingEmployee, setDeletingEmployee] = useState<EmployeeType | null>(null);
+    const [singleDeleting, setSingleDeleting] = useState(false);
+
     // Bulk Delete state
     const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
     const [bulkDeleting, setBulkDeleting] = useState(false);
@@ -221,16 +225,19 @@ export default function Employees() {
         }
     };
 
-    const handleDelete = async (emp: EmployeeType) => {
-        if (confirm(`Are you sure you want to delete employee "${emp.firstName} ${emp.lastName}"?`)) {
-            try {
-                await deleteEmployee(emp.id);
-                toast.success("Employee deleted successfully");
-                fetchEmployeesData();
-            } catch (error: any) {
-                console.error("Delete error:", error);
-                toast.error(error.response?.data?.message || "Failed to delete employee");
-            }
+    const handleConfirmDeleteSingle = async () => {
+        if (!deletingEmployee) return;
+        setSingleDeleting(true);
+        try {
+            await deleteEmployee(deletingEmployee.id);
+            toast.success(`Employee "${deletingEmployee.firstName} ${deletingEmployee.lastName}" deleted successfully`);
+            setDeletingEmployee(null);
+            fetchEmployeesData();
+        } catch (error: any) {
+            console.error("Delete error:", error);
+            toast.error(error.response?.data?.message || "Failed to delete employee");
+        } finally {
+            setSingleDeleting(false);
         }
     };
 
@@ -649,7 +656,7 @@ export default function Employees() {
                                                         </DropdownMenuItem>
                                                         <DropdownMenuSeparator />
                                                         <DropdownMenuItem
-                                                            onClick={() => handleDelete(emp)}
+                                                            onClick={() => setDeletingEmployee(emp)}
                                                             className="text-red-600 dark:text-red-400 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/40"
                                                         >
                                                             <Trash2 size={14} className="mr-2" />
@@ -697,6 +704,48 @@ export default function Employees() {
                     </>
                 )}
             </div>
+
+            {/* Modal - Single Item Delete Confirmation */}
+            {deletingEmployee && (
+                <div className="fixed inset-0 bg-slate-900/40 dark:bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl w-[420px] max-w-full shadow-2xl animate-in fade-in zoom-in-95 duration-200 overflow-hidden border border-slate-100 dark:border-slate-800 p-6">
+                        <div className="flex items-center gap-3 mb-4 text-red-600 dark:text-red-400">
+                            <div className="p-3 bg-red-50 dark:bg-red-950/50 rounded-xl">
+                                <Trash2 size={24} />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-bold text-slate-800 dark:text-white">Delete Employee</h3>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">This action cannot be undone.</p>
+                            </div>
+                        </div>
+                        <p className="text-sm text-slate-600 dark:text-slate-300 mb-6">
+                            Are you sure you want to delete employee <strong className="text-slate-800 dark:text-white">"{deletingEmployee.firstName} {deletingEmployee.lastName}"</strong>?
+                        </p>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setDeletingEmployee(null)}
+                                className="flex-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl py-2.5 font-semibold text-sm transition"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleConfirmDeleteSingle}
+                                disabled={singleDeleting}
+                                className="flex-1 bg-red-600 hover:bg-red-700 disabled:opacity-70 text-white rounded-xl py-2.5 font-semibold text-sm transition flex items-center justify-center gap-2 shadow-lg shadow-red-500/10"
+                            >
+                                {singleDeleting ? (
+                                    <>
+                                        <Loader2 size={16} className="animate-spin" />
+                                        Deleting...
+                                    </>
+                                ) : (
+                                    "Delete"
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Modal - Bulk Delete Confirmation */}
             {isBulkDeleteOpen && (
