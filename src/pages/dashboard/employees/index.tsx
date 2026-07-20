@@ -266,57 +266,57 @@ export default function Employees() {
                         <Table>
                             <TableHeader>
                                 <TableRow className="bg-slate-50 dark:bg-slate-950/50 hover:bg-slate-50 dark:hover:bg-slate-950/50">
-                                    <TableHead className="font-bold text-slate-500 dark:text-slate-400 px-6 py-4 w-28">Code</TableHead>
-                                    <TableHead className="font-bold text-slate-500 dark:text-slate-400 px-6 py-4">Employee</TableHead>
-                                    <TableHead className="font-bold text-slate-500 dark:text-slate-400 px-6 py-4">Contact Info</TableHead>
-                                    <TableHead className="font-bold text-slate-500 dark:text-slate-400 px-6 py-4">Designation</TableHead>
-                                    <TableHead className="font-bold text-slate-500 dark:text-slate-400 px-6 py-4">Department</TableHead>
-                                    <TableHead className="font-bold text-slate-500 dark:text-slate-400 px-6 py-4 w-28">Status</TableHead>
-                                    <TableHead className="font-bold text-slate-500 dark:text-slate-400 px-6 py-4 w-32">Joined Date</TableHead>
-                                    <TableHead className="font-bold text-slate-500 dark:text-slate-400 px-6 py-4 w-28 text-right">Actions</TableHead>
+                                    <TableHead className="font-bold text-slate-500 dark:text-slate-400 px-5 py-3.5 w-24">Code</TableHead>
+                                    <TableHead className="font-bold text-slate-500 dark:text-slate-400 px-5 py-3.5">Employee</TableHead>
+                                    <TableHead className="font-bold text-slate-500 dark:text-slate-400 px-5 py-3.5">Contact Info</TableHead>
+                                    <TableHead className="font-bold text-slate-500 dark:text-slate-400 px-5 py-3.5">Designation</TableHead>
+                                    <TableHead className="font-bold text-slate-500 dark:text-slate-400 px-5 py-3.5">Department</TableHead>
+                                    <TableHead className="font-bold text-slate-500 dark:text-slate-400 px-5 py-3.5 w-28">Status</TableHead>
+                                    <TableHead className="font-bold text-slate-500 dark:text-slate-400 px-5 py-3.5 w-32">Joined Date</TableHead>
+                                    <TableHead className="font-bold text-slate-500 dark:text-slate-400 px-5 py-3.5 w-28 text-right">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {paginatedEmployees.map((emp) => (
                                     <TableRow key={emp.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-950/20 border-b border-slate-100 dark:border-slate-800 transition-colors">
-                                        <TableCell className="px-6 py-4 font-bold text-slate-600 dark:text-slate-400 text-xs">
+                                        <TableCell className="px-5 py-3.5 font-bold text-slate-600 dark:text-slate-400 text-xs">
                                             #{emp.employeeCode}
                                         </TableCell>
-                                        <TableCell className="px-6 py-4">
+                                        <TableCell className="px-5 py-3.5">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-8 h-8 rounded-full bg-teal-50 dark:bg-teal-950/40 text-[#18beb8] dark:text-[#18beb8] flex items-center justify-center font-bold text-xs shrink-0 uppercase border border-teal-100/50 dark:border-teal-950/20">
                                                     {emp.firstName.substring(0, 1)}{emp.lastName.substring(0, 1)}
                                                 </div>
-                                                <span className="font-bold text-slate-800 dark:text-slate-100 text-sm">
+                                                <span className="font-bold text-slate-800 dark:text-slate-100 text-sm whitespace-nowrap">
                                                     {emp.firstName} {emp.lastName}
                                                 </span>
                                             </div>
                                         </TableCell>
-                                        <TableCell className="px-6 py-4">
+                                        <TableCell className="px-5 py-3.5">
                                             <div className="space-y-1 text-xs">
                                                 <div className="flex items-center gap-1 text-slate-600 dark:text-slate-300">
-                                                    <Mail size={12} className="text-slate-400" />
-                                                    <span>{emp.email}</span>
+                                                    <Mail size={12} className="text-slate-400 shrink-0" />
+                                                    <span className="truncate max-w-[180px]" title={emp.email}>{emp.email}</span>
                                                 </div>
                                                 <div className="flex items-center gap-1 text-slate-600 dark:text-slate-300">
-                                                    <Phone size={12} className="text-slate-400" />
+                                                    <Phone size={12} className="text-slate-400 shrink-0" />
                                                     <span>{emp.mobile}</span>
                                                 </div>
                                             </div>
                                         </TableCell>
-                                        <TableCell className="px-6 py-4 text-slate-700 dark:text-slate-200 text-sm font-semibold">
+                                        <TableCell className="px-5 py-3.5 text-slate-700 dark:text-slate-200 text-sm font-semibold whitespace-nowrap">
                                             {emp.designation}
                                         </TableCell>
-                                        <TableCell className="px-6 py-4 text-slate-600 dark:text-slate-300 text-sm">
-                                            <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                                                <Layers size={10} className="text-slate-400" />
+                                        <TableCell className="px-5 py-3.5 text-slate-600 dark:text-slate-300 text-sm">
+                                            <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 whitespace-nowrap">
+                                                <Layers size={10} className="text-slate-400 shrink-0" />
                                                 {emp.department}
                                             </div>
                                         </TableCell>
-                                        <TableCell className="px-6 py-4">
+                                        <TableCell className="px-5 py-3.5">
                                             <button
                                                 onClick={() => handleToggleStatus(emp)}
-                                                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold select-none cursor-pointer transition-colors duration-200 border ${emp.status
+                                                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold select-none cursor-pointer transition-colors duration-200 border whitespace-nowrap ${emp.status
                                                     ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/30"
                                                     : "bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border-red-200 dark:border-red-900/30"
                                                     }`}
@@ -334,9 +334,9 @@ export default function Employees() {
                                                 )}
                                             </button>
                                         </TableCell>
-                                        <TableCell className="px-6 py-4 text-slate-600 dark:text-slate-300 text-sm">
+                                        <TableCell className="px-5 py-3.5 text-slate-600 dark:text-slate-300 text-sm whitespace-nowrap">
                                             <div className="flex items-center gap-1.5">
-                                                <Calendar size={14} className="text-slate-400" />
+                                                <Calendar size={14} className="text-slate-400 shrink-0" />
                                                 <span>
                                                     {new Date(emp.joiningDate).toLocaleDateString(undefined, {
                                                         year: "numeric",
@@ -346,11 +346,11 @@ export default function Employees() {
                                                 </span>
                                             </div>
                                         </TableCell>
-                                        <TableCell className="px-6 py-4 text-right">
-                                            <div className="flex justify-end gap-2">
+                                        <TableCell className="px-5 py-3.5 text-right">
+                                            <div className="flex justify-end gap-1.5">
                                                 <button
                                                     onClick={() => handleOpenEdit(emp)}
-                                                    className="p-2 text-slate-400 hover:text-[#18beb8] hover:bg-teal-50 dark:hover:bg-teal-950/40 rounded-lg transition"
+                                                    className="p-1.5 text-slate-400 hover:text-[#18beb8] hover:bg-teal-50 dark:hover:bg-teal-950/40 rounded-lg transition"
                                                     title="Edit Profile"
                                                 >
                                                     <Edit2 size={16} />
