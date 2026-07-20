@@ -54,7 +54,7 @@ export const DocumentTypeFormModal: React.FC<DocumentTypeFormModalProps> = ({
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit(onSubmit as any)} className="p-6 space-y-4">
+                <form onSubmit={handleSubmit(onSubmit as any)} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
                     <div>
                         <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
                             Document Type Name *
